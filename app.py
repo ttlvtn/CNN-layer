@@ -1,70 +1,54 @@
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageFilter, ImageOps
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="AI 視覺進化：從 ANN 到 CNN", layout="wide")
+st.set_page_config(page_title="ANN 內部構造探險", layout="wide")
 
-st.title("🧩 AI 大腦拆解：ANN 與 CNN 的物理意義")
+st.title("🧠 ANN 每一層到底裝了什麼？")
 
-uploaded_file = st.file_uploader("上傳一張圖片，觀測隱藏層的物理變化...", type=["jpg", "png", "jpeg"])
+# 模擬一個簡單的神經元運算
+st.header("1. 隱藏層的神經元運算模擬")
+st.write("每個神經元都在進行：$Output = Activation(Weight \times Input + Bias)$")
 
-if uploaded_file:
-    img = Image.open(uploaded_file).convert('RGB')
+col1, col2 = st.columns(2)
+
+with col1:
+    input_val = st.slider("輸入訊號強度 (Input)", 0.0, 1.0, 0.5)
+    weight_val = st.slider("權重設定 (Weight/重要性)", -2.0, 2.0, 1.2)
+    bias_val = st.slider("偏置設定 (Bias/門檻)", -1.0, 1.0, -0.2)
+
+with col2:
+    # 簡單模擬 ReLU 激活函數
+    z = input_val * weight_val + bias_val
+    output_val = max(0, z)
     
-    col_ann, col_cnn = st.columns(2)
+    st.metric("神經元輸出強度", f"{output_val:.2f}")
+    if output_val > 0:
+        st.success("✅ 訊號成功激發！傳遞到下一層。")
+    else:
+        st.error("❌ 訊號太弱，被攔截了。")
 
-    # --- ANN 視覺化：呈現「數據大雜燴」 ---
-    with col_ann:
-        st.header("1. ANN 模式 (隱藏層基礎)")
-        st.write("🔴 **物理含意：數據攤平 (Flattening)**")
-        st.info("ANN 把圖片壓扁成一維數字。它失去空間感，只靠『權重投票』來找規律。")
-        
-        # 模擬圖片攤平
-        img_gray = img.resize((50, 50)).convert('L')
-        pixels = np.array(img_gray).flatten()
-        
-        fig, ax = plt.subplots(figsize=(5, 3))
-        ax.plot(pixels[:500], color='gray', linewidth=0.5)
-        ax.set_title("ANN 眼中的數字流 (Hidden Layer 輸入前)")
-        st.pyplot(fig)
-        st.caption("這就是隱藏層在處理的東西：一長串毫無章法的數字。")
+st.markdown("---")
 
-    # --- CNN 視覺化：呈現「卷積濾鏡」 ---
-    with col_cnn:
-        st.header("2. CNN 模式 (套用卷積層)")
-        st.write("🟢 **物理含意：特徵掃描 (Filtering)**")
-        st.info("CNN 像戴上掃描眼鏡。它保留了空間結構，能認出『線條』與『形狀』。")
-        
-        # 模擬卷積提取邊緣
-        cnn_view = img.convert('L').filter(ImageFilter.FIND_EDGES)
-        st.image(cnn_view, caption="CNN 卷積層提取出的物理特徵 (邊緣圖)", use_container_width=True)
-        st.caption("這就是 CNN 的優勢：它能看見形狀，而不只是數字。")
+# 輸出層的邏輯
+st.header("2. 輸出層：最終機率投票")
+st.write("輸出層會把所有神經元的得分轉化為機率。")
 
-    st.markdown("---")
+labels = ["貓 (Cat)", "狗 (Dog)", "汽車 (Car)"]
+scores = st.multiselect("手動設定輸出層得分：", [1, 2, 5, 8, 10], default=[8, 2, 1])
 
-    # --- CNN 的三階段物理質變 ---
-    st.header("🏗️ CNN 卷積層的層級進化")
-    v1, v2, v3 = st.columns(3)
-
-    with v1:
-        st.subheader("第一階段：找線條")
-        st.image(img.convert('L').filter(ImageFilter.FIND_EDGES), use_container_width=True)
-        st.write("**物理含意**：偵測像素變化，找邊緣。")
-
-    with v2:
-        st.subheader("第二階段：找零件")
-        part_view = img.filter(ImageFilter.SHARPEN).convert('RGB')
-        st.image(part_view, use_container_width=True)
-        st.write("**物理含意**：組合線條，變成耳朵、眼睛或輪胎。")
-
-    with v3:
-        st.subheader("第三階段：看邏輯")
-        # 模擬熱力圖 (Attention Map)
-        heatmap = img.convert('L').resize((14, 14)).resize(img.size, resample=Image.NEAREST)
-        heatmap = ImageOps.colorize(heatmap, black="blue", white="red")
-        st.image(heatmap, use_container_width=True)
-        st.write("**物理含意**：理解物件位置，決定這到底是什麼。")
+if len(scores) == 3:
+    # 模擬 Softmax
+    exp_scores = np.exp(scores)
+    probabilities = exp_scores / np.sum(exp_scores)
+    
+    fig, ax = plt.subplots()
+    ax.bar(labels, probabilities, color=['#ff9999','#66b3ff','#99ff99'])
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("機率 (%)")
+    st.pyplot(fig)
+else:
+    st.warning("請選擇剛好 3 個得分數值。")
 
 st.write("---")
-st.write("💡 **教學結語**：ANN 是靈魂，它透過隱藏層學會決策；卷積層是眼睛，它讓 ANN 學會看圖。兩者結合，就是我們今天看到的強大影像 AI！")
+st.info("💡 **教學點：** ANN 的層級是為了處理資料模式，而 CNN 加入的卷積層則是為了讓這些層級能更聰明地『看見』圖片特徵。")
