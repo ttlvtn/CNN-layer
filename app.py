@@ -3,16 +3,18 @@ import torch
 from torchvision import models, transforms
 from PIL import Image, ImageFilter
 import requests
+import numpy as np
 
-st.set_page_config(page_title="AI 大腦實驗室", layout="wide")
+# 頁面設定
+st.set_page_config(page_title="AI 影像專家系統", layout="wide")
 
-# --- 1. 核心邏輯：載入模型與標籤 ---
+# --- 1. 核心大腦：載入模型 ---
 @st.cache_resource
 def get_resources():
-    # 載入 ResNet-101 (深度代表)
+    # 載入 ResNet-101 (深度與穩定代表)
     res101 = models.resnet101(weights=models.ResNet101_Weights.IMAGENET1K_V1)
     res101.eval()
-    # 載入 EfficientNet-B0 (效率代表)
+    # 載入 EfficientNet-B0 (效率與精準代表)
     eff_b0 = models.efficientnet_b0(weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1)
     eff_b0.eval()
     # 載入分類標籤
@@ -22,85 +24,72 @@ def get_resources():
 
 res101, eff_b0, labels = get_resources()
 
-# --- 2. UI 介面設計 ---
-st.title("🧠 AI 大腦實驗室：ResNet vs EfficientNet")
+# --- 2. 介面標題 ---
+st.title("🤖 AI 影像探險：從『看見線條』到『理解物件』")
 st.markdown("""
-本實驗室將展示兩大經典 AI 架構如何處理影像。你可以觀察「深度」與「效率」在視覺化處理上的差異。
+這個 App 會帶你進入 **CNN (卷積神經網路)** 的隱藏層世界。
+我們會對比經典的 **ResNet-101** 與現代的 **EfficientNet**，看看它們如何理解你上傳的照片。
 """)
 
+# 側邊欄：教學設定
 with st.sidebar:
-    st.header("工廠大腦設定")
-    model_choice = st.radio("你想用哪個模型？", ["ResNet-101 (深度取勝)", "EfficientNet-B0 (效率取勝)"])
+    st.header("🏢 實驗室設定")
+    model_choice = st.radio("選擇 AI 大腦：", ["ResNet-101 (重裝深層)", "EfficientNet-B0 (輕量高效)"])
     st.markdown("---")
-    st.info("💡 **小知識：** 業界現在常將兩者結合，ResNet 負責穩定的基礎，EfficientNet 負責優化效率。")
+    st.markdown("### 業界專家小叮嚀")
+    st.write("在業界，ResNet 常用於**醫療影像**，因為它架構穩定；EfficientNet 常用於**手機 App**，因為它又快又省電。")
 
-# --- 3. 步驟一：上傳與前處理視覺化 ---
-uploaded_file = st.file_uploader("請上傳一張圖片...", type=["jpg", "png", "jpeg"])
+# --- 3. 圖片上傳區 ---
+uploaded_file = st.file_uploader("📸 上傳一張照片來測試 (例如貓、狗、車、花...)", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
     img = Image.open(uploaded_file).convert('RGB')
     
-    col_input, col_process = st.columns(2)
+    # 前處理視覺化
+    col_input, col_ai_view = st.columns(2)
     with col_input:
-        st.header("🖼️ 原始輸入")
+        st.header("📥 你的原始照片")
         st.image(img, use_container_width=True)
-        
-    with col_process:
-        st.header("🔍 AI 的前處理視野")
+    with col_ai_view:
+        st.header("👓 AI 的初步印象")
+        # 模擬 AI 前處理：縮放並中心裁剪
         ai_view = img.resize((224, 224))
-        st.image(ai_view, caption="圖片會被強制調整為 224x224 供 AI 讀取", width=224)
-        st.write("1. 尺寸統一 2. 顏色標準化 3. 轉化為數字矩陣")
+        st.image(ai_view, caption="AI 實際上只看這塊 224x224 的區域", width=224)
 
     st.markdown("---")
 
-    # --- 4. 步驟二：加工過程模擬視覺化 (修正 Bug) ---
-    st.header(f"🏗️ {model_choice} 的加工過程模擬")
-    st.write("AI 並不是一眼看出答案，而是透過隱藏層一層層「抽絲剝繭」。")
-    
+    # --- 4. 隱藏層視覺化：凸顯特徵處理含意 ---
+    st.header(f"🏗️ {model_choice} 的特徵提取過程")
+    st.info("AI 並不是直接看到整張圖，而是在隱藏層中進行『特徵過濾』。")
+
     v_col1, v_col2, v_col3 = st.columns(3)
-    
+
     with v_col1:
-        st.image(img, caption="第一階段：邊緣偵測", use_container_width=True)
-        st.caption("🔍 提取基礎特徵：線條、顏色對比。")
+        st.subheader("1. 邊緣處理 (Edges)")
+        # 視覺化模擬：使用 FIND_EDGES 模擬淺層卷積
+        edge_map = img.convert('L').filter(ImageFilter.FIND_EDGES)
+        st.image(edge_map, caption="淺層：偵測輪廓與線條", use_container_width=True)
+        st.write("🔍 **AI 在做什麼？** 尋找物體的邊界、條紋與顏色交界處。")
 
     with v_col2:
-        # 修復之處：使用 ImageFilter.BoxBlur 並確保大小寫正確
-        img_mid = img.resize((img.width // 2, img.height // 2)).filter(ImageFilter.BoxBlur(radius=2))
-        st.image(img_mid, caption="第二階段：特徵組合", use_container_width=True)
-        st.caption("📐 辨識局部形狀：如耳朵、輪胎弧度。")
+        st.subheader("2. 特徵處理 (Shapes)")
+        # 視覺化模擬：強化細節並稍微模糊，模擬局部特徵圖
+        feature_map = img.filter(ImageFilter.DETAIL).resize((img.width // 2, img.height // 2))
+        st.image(feature_map, caption="中層：認出形狀零件", use_container_width=True)
+        st.write("📐 **AI 在做什麼？** 將線條組合成三角形、圓形或紋理，認出『耳朵』或『輪子』。")
 
     with v_col3:
-        img_deep = img.resize((img.width // 4, img.height // 4)).filter(ImageFilter.BoxBlur(radius=4))
-        st.image(img_deep, caption="第三階段：物件特徵", use_container_width=True)
-        st.caption("🧩 抽象化理解：確認這是一個完整的物件。")
+        st.subheader("3. 物件處理 (Concepts)")
+        # 視覺化模擬：極度像素化，模擬高階抽象權重
+        concept_map = img.resize((14, 14)).resize((img.width, img.height), resample=Image.NEAREST)
+        st.image(concept_map, caption="深層：理解物件語意", use_container_width=True)
+        st.write("🧩 **AI 在做什麼？** 這是最抽象的階段，它在確認這些零件的空間關係，判斷『這是一隻貓』。")
 
-    # --- 5. 步驟三：運作邏輯圖解 ---
-    logic_col1, logic_col2 = st.columns(2)
-    if "ResNet" in model_choice:
-        with logic_col1:
-            st.subheader("ResNet 邏輯：跳躍捷徑")
-            st.write("像是有 101 個加工區，並設有「快速道路」。")
-            st.write("即使工廠再深，資訊也不會迷失。")
-        with logic_col2:
-            st.graphviz_chart('''
-            digraph { rankdir=LR; node[shape=box, style=filled, color=lightblue]; 
-            Input -> Layer1 -> Layer2 -> Layer3 -> Output;
-            Layer1 -> Layer3 [label="捷徑 (Skip)", color=red]; }
-            ''')
-            
-    else:
-        with logic_col1:
-            st.subheader("EfficientNet 邏輯：複合縮放")
-            st.write("不一味加深，而是精算深度、寬度與解析度。")
-            st.write("用數學找到最省電且最精準的黃金比例。")
-        with logic_col2:
-            st.latex(r"Scaling = (\text{depth}, \text{width}, \text{res})")
-            
-
-    # --- 6. 步驟四：辨識結果 ---
+    # --- 5. 辨識結果 ---
     st.markdown("---")
-    st.header("🏆 辨識結果")
+    st.header("🏆 辨識決策階段")
     
+    # 模型運算預處理
     preprocess = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -109,28 +98,37 @@ if uploaded_file:
     ])
     input_tensor = preprocess(img).unsqueeze(0)
     
-    with st.spinner('AI 正在 101 層隱藏層中旅行...'):
-        current_model = res101 if "ResNet" in model_choice else eff_b0
+    with st.spinner('正在穿越 101 層隱藏層...'):
+        model = res101 if "ResNet" in model_choice else eff_b0
         with torch.no_grad():
-            output = current_model(input_tensor)
+            output = model(input_tensor)
             prob = torch.nn.functional.softmax(output[0], dim=0)
             top5_prob, top5_id = torch.topk(prob, 5)
 
     res_col1, res_col2 = st.columns(2)
     with res_col1:
+        st.subheader("🎯 猜測結果")
         for i in range(5):
-            st.write(f"排名 {i+1}: **{labels[top5_id[i]]}**")
+            st.write(f"第 {i+1} 名: **{labels[top5_id[i]]}**")
     with res_col2:
+        st.subheader("📊 信心指數")
         for i in range(5):
-            st.progress(float(top5_prob[i]), text=f"信心度：{top5_prob[i]:.2%}")
+            st.progress(float(top5_prob[i]), text=f"{top5_prob[i]:.2%}")
 
-    # --- 7. 業界實例對比表 ---
+    # --- 6. 業界大解密：為什麼這兩個模型很強？ ---
     st.markdown("---")
-    st.header("🏢 業界實例：它們如何合作？")
-    st.table({
-        "場景": ["醫院 X 光篩檢", "手機拍照美顏", "自駕車物件辨識"],
-        "架構選擇": ["ResNet + EfficientNet 集成", "輕量化 EfficientNet", "ResNet 骨幹 + 自定義層"],
-        "原因": ["醫療不能出錯，多個模型投票更穩", "需要省電、即時反應", "需要深層特徵來確保安全"]
-    })
+    st.header("🤝 業界實戰：合併使用的藝術")
+    
+    exp1, exp2 = st.columns(2)
+    with exp1:
+        st.markdown("### 🏢 ResNet-101 的強項")
+        st.write("**核心：跳躍捷徑 (Skip Connection)**")
+        st.write("它像是一棟結構紮實的摩天大樓。即使蓋到 101 層，只要有『快速道路』，訊息就不會出錯。業界常用於需要**絕對穩定**的場景，如工業零件檢測。")
+    with exp2:
+        st.markdown("### ⚡ EfficientNet 的強項")
+        st.write("**核心：複合縮放 (Compound Scaling)**")
+        st.write("它像是精算過後的超級跑車。不盲目追求層數，而是讓寬度與解析度達到黃金比例。業界常用於**實時辨識**，如監視器或手機 App。")
 
+    st.success("💡 **業界趨勢：** 現在最厲害的技術會將兩者『合併』。用 ResNet 的穩定當骨幹，配上 EfficientNet 的縮放邏輯，打造出既準又快的新模型（如 ConvNeXt）！")
+    
     st.balloons()
