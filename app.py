@@ -1,54 +1,75 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image, ImageFilter
 
-st.set_page_config(page_title="ANN 內部構造探險", layout="wide")
+st.set_page_config(page_title="AI 構造大解密", layout="wide")
 
-st.title("🧠 ANN 每一層到底裝了什麼？")
+st.title("🔬 AI 大腦層級拆解：從像素到決策")
 
-# 模擬一個簡單的神經元運算
-st.header("1. 隱藏層的神經元運算模擬")
-st.write("每個神經元都在進行：$Output = Activation(Weight \times Input + Bias)$")
+# 1. 第一層分頁：ANN 與 CNN 的巨觀對比
+tab_ann, tab_cnn = st.tabs(["基礎大腦：ANN (人工神經網路)", "進階視覺：CNN (卷積神經網路)"])
 
-col1, col2 = st.columns(2)
-
-with col1:
-    input_val = st.slider("輸入訊號強度 (Input)", 0.0, 1.0, 0.5)
-    weight_val = st.slider("權重設定 (Weight/重要性)", -2.0, 2.0, 1.2)
-    bias_val = st.slider("偏置設定 (Bias/門檻)", -1.0, 1.0, -0.2)
-
-with col2:
-    # 簡單模擬 ReLU 激活函數
-    z = input_val * weight_val + bias_val
-    output_val = max(0, z)
+# --- ANN 分頁 ---
+with tab_ann:
+    st.header("🏢 ANN 結構：資訊處理工廠")
+    st.write("ANN 處理資訊就像在做『數字大雜燴』的統計。")
     
-    st.metric("神經元輸出強度", f"{output_val:.2f}")
-    if output_val > 0:
-        st.success("✅ 訊號成功激發！傳遞到下一層。")
-    else:
-        st.error("❌ 訊號太弱，被攔截了。")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        with st.expander("📍 輸入層 (Input Layer)"):
+            st.write("**物理含意**：將影像『攤平』。")
+            st.write("**細部邏輯**：將像素 2D 矩陣轉為 1D 向量。")
+            st.code("flattened = image.reshape(-1)")
+            
+    with col2:
+        with st.expander("📍 隱藏層 (Hidden Layer)"):
+            st.write("**物理含意**：特徵加權與過濾。")
+            st.write("**細部邏輯**：$y = f(Wx + b)$")
+            st.write("神經元透過權重(W)找模式，再由激活函數(f)過濾雜訊。")
+            
+    with col3:
+        with st.expander("📍 輸出層 (Output Layer)"):
+            st.write("**物理含意**：機率決策。")
+            st.write("**細部邏輯**：使用 Softmax 將得分轉為 0~1 的機率。")
+            st.write("例如：貓 (0.9), 狗 (0.1)")
 
+# --- CNN 分頁 ---
+with tab_cnn:
+    st.header("👁️ CNN 進化：裝上濾鏡的眼睛")
+    st.write("神經網路套用了**卷積層**後，就能看見『形狀』。")
+    
+    c_col1, c_col2, c_col3 = st.columns(3)
+    
+    with c_col1:
+        with st.expander("🔍 卷積層 (Convolution)"):
+            st.write("**物理含意**：局部掃描濾鏡。")
+            st.write("**細部邏輯**：濾鏡(Kernel)在圖片上滑動做內積運算。")
+            st.image("https://upload.wikimedia.org/wikipedia/commons/1/19/2D_Convolution_Animation.gif", caption="濾鏡滑動模擬")
+            
+    with c_col2:
+        with st.expander("📏 池化層 (Pooling)"):
+            st.write("**物理含意**：重點摘要。")
+            st.write("**細部邏輯**：縮小圖片尺寸，只保留區域內最強的訊號。")
+            
+    with c_col3:
+        with st.expander("🧩 全連接層 (ANN 部份)"):
+            st.write("**物理含意**：零件組合與最後投票。")
+            st.write("**細部邏輯**：將特徵圖轉回 ANN 結構，根據零件特徵做最後決定。")
+
+# --- 互動演示區 ---
 st.markdown("---")
+st.header("🎮 實戰演示：上傳圖片看濾鏡效果")
+up_file = st.file_uploader("上傳圖片...", type=["jpg","png"])
 
-# 輸出層的邏輯
-st.header("2. 輸出層：最終機率投票")
-st.write("輸出層會把所有神經元的得分轉化為機率。")
-
-labels = ["貓 (Cat)", "狗 (Dog)", "汽車 (Car)"]
-scores = st.multiselect("手動設定輸出層得分：", [1, 2, 5, 8, 10], default=[8, 2, 1])
-
-if len(scores) == 3:
-    # 模擬 Softmax
-    exp_scores = np.exp(scores)
-    probabilities = exp_scores / np.sum(exp_scores)
+if up_file:
+    img = Image.open(up_file).convert('RGB')
     
-    fig, ax = plt.subplots()
-    ax.bar(labels, probabilities, color=['#ff9999','#66b3ff','#99ff99'])
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("機率 (%)")
-    st.pyplot(fig)
-else:
-    st.warning("請選擇剛好 3 個得分數值。")
+    # 模擬 CNN 第一層 (找邊緣)
+    st.subheader("CNN 第一層：偵探濾鏡正在尋找邊緣線條...")
+    edge_img = img.convert('L').filter(ImageFilter.FIND_EDGES)
+    st.image(edge_img, width=400)
+    st.info("物理含意：這就是卷積層在隱藏層裡幹的好事！它把顏色去掉了，只留下物體的邊界資訊。")
 
-st.write("---")
-st.info("💡 **教學點：** ANN 的層級是為了處理資料模式，而 CNN 加入的卷積層則是為了讓這些層級能更聰明地『看見』圖片特徵。")
+st.info("💡 **教學點**：ResNet-101 其實就是重複了這個過程 101 次，讓 AI 能從微小的線條一直理解到複雜的物件語意。")
