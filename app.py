@@ -1,75 +1,107 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 
-st.set_page_config(page_title="AI 構造大解密", layout="wide")
+st.set_page_config(page_title="ANN 內部機制解密", layout="wide")
 
-st.title("🔬 AI 大腦層級拆解：從像素到決策")
+st.title("🧠 深入 ANN 內部：每一層的物理運作與視覺化")
+st.markdown("一個最基礎的人工神經網路 (ANN) 有三層。讓我們來看看每一層裡面到底發生了什麼魔法。")
 
-# 1. 第一層分頁：ANN 與 CNN 的巨觀對比
-tab_ann, tab_cnn = st.tabs(["基礎大腦：ANN (人工神經網路)", "進階視覺：CNN (卷積神經網路)"])
+# --- 1. 輸入層 (Input Layer) ---
+st.header("1. 📍 輸入層：數據的『攤平』")
+st.subheader("物理含意：將圖像轉為一維數字流")
+st.write("這是 AI 大腦接收原始數據的第一步。對於圖片來說，ANN 會粗暴地把 2D 圖像『壓扁』成一長串 1D 數字。這時，圖片的空間關係就消失了。")
 
-# --- ANN 分頁 ---
-with tab_ann:
-    st.header("🏢 ANN 結構：資訊處理工廠")
-    st.write("ANN 處理資訊就像在做『數字大雜燴』的統計。")
+uploaded_file = st.file_uploader("請上傳一張圖片，觀看 ANN 的輸入層處理：", type=["jpg", "png", "jpeg"])
+
+if uploaded_file:
+    img = Image.open(uploaded_file).convert('RGB')
     
-    col1, col2, col3 = st.columns(3)
+    col_raw, col_flat = st.columns(2)
     
-    with col1:
-        with st.expander("📍 輸入層 (Input Layer)"):
-            st.write("**物理含意**：將影像『攤平』。")
-            st.write("**細部邏輯**：將像素 2D 矩陣轉為 1D 向量。")
-            st.code("flattened = image.reshape(-1)")
-            
-    with col2:
-        with st.expander("📍 隱藏層 (Hidden Layer)"):
-            st.write("**物理含意**：特徵加權與過濾。")
-            st.write("**細部邏輯**：$y = f(Wx + b)$")
-            st.write("神經元透過權重(W)找模式，再由激活函數(f)過濾雜訊。")
-            
-    with col3:
-        with st.expander("📍 輸出層 (Output Layer)"):
-            st.write("**物理含意**：機率決策。")
-            st.write("**細部邏輯**：使用 Softmax 將得分轉為 0~1 的機率。")
-            st.write("例如：貓 (0.9), 狗 (0.1)")
+    with col_raw:
+        st.image(img.resize((100, 100)), caption="原始圖片 (縮小)", width=100)
+        
+    with col_flat:
+        img_gray = img.resize((50, 50)).convert('L') # 轉為灰階並縮小以利視覺化
+        pixels = np.array(img_gray).flatten()
+        
+        fig_input, ax_input = plt.subplots(figsize=(6, 2))
+        ax_input.plot(pixels[:200], color='skyblue', linewidth=0.8) # 顯示前200個像素點
+        ax_input.set_title("被『攤平』的像素數字流")
+        ax_input.set_xlabel("像素點編號")
+        ax_input.set_ylabel("亮度值 (0-255)")
+        st.pyplot(fig_input)
+        st.caption("每個點都代表一個像素的亮度值，但它們已經沒有『左右鄰居』的關係了。")
+        st.success("✅ **物理結論：** 輸入層是原始數據的搬運工，將 2D 資訊『去結構化』。")
 
-# --- CNN 分頁 ---
-with tab_cnn:
-    st.header("👁️ CNN 進化：裝上濾鏡的眼睛")
-    st.write("神經網路套用了**卷積層**後，就能看見『形狀』。")
-    
-    c_col1, c_col2, c_col3 = st.columns(3)
-    
-    with c_col1:
-        with st.expander("🔍 卷積層 (Convolution)"):
-            st.write("**物理含意**：局部掃描濾鏡。")
-            st.write("**細部邏輯**：濾鏡(Kernel)在圖片上滑動做內積運算。")
-            st.image("https://upload.wikimedia.org/wikipedia/commons/1/19/2D_Convolution_Animation.gif", caption="濾鏡滑動模擬")
-            
-    with c_col2:
-        with st.expander("📏 池化層 (Pooling)"):
-            st.write("**物理含意**：重點摘要。")
-            st.write("**細部邏輯**：縮小圖片尺寸，只保留區域內最強的訊號。")
-            
-    with c_col3:
-        with st.expander("🧩 全連接層 (ANN 部份)"):
-            st.write("**物理含意**：零件組合與最後投票。")
-            st.write("**細部邏輯**：將特徵圖轉回 ANN 結構，根據零件特徵做最後決定。")
-
-# --- 互動演示區 ---
 st.markdown("---")
-st.header("🎮 實戰演示：上傳圖片看濾鏡效果")
-up_file = st.file_uploader("上傳圖片...", type=["jpg","png"])
 
-if up_file:
-    img = Image.open(up_file).convert('RGB')
+# --- 2. 隱藏層 (Hidden Layer) ---
+st.header("2. 📍 隱藏層：模式的『過濾』與『激活』")
+st.subheader("物理含意：神經元進行加權投票與開關決策")
+st.write("這是 ANN 的『大腦核心』，每個神經元都像一個小小的決策者。")
+
+col_weights, col_relu = st.columns(2)
+
+with col_weights:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Artificial_neural_network.svg/1200px-Artificial_neural_network.svg.png", 
+             caption="神經元連結與權重（示意圖）", width=300)
+    st.write("**每個神經元都裝了：**")
+    st.write("👉 **權重 (Weights)**：決定前一層哪個訊號最重要。")
+    st.write("👉 **偏置 (Bias)**：調整神經元被激發的門檻。")
+    st.success("✅ **物理動作：** 進行 $Weight \times Input + Bias$ 運算，篩選重要資訊。")
+
+with col_relu:
+    st.subheader("激活函數 (ReLU)：神經元的『開關』")
+    st.write("這是決定神經元是否要把訊號傳遞出去的關鍵。")
     
-    # 模擬 CNN 第一層 (找邊緣)
-    st.subheader("CNN 第一層：偵探濾鏡正在尋找邊緣線條...")
-    edge_img = img.convert('L').filter(ImageFilter.FIND_EDGES)
-    st.image(edge_img, width=400)
-    st.info("物理含意：這就是卷積層在隱藏層裡幹的好事！它把顏色去掉了，只留下物體的邊界資訊。")
+    # 模擬 ReLU 視覺化
+    x_relu = np.linspace(-3, 3, 100)
+    y_relu = np.maximum(0, x_relu)
+    
+    fig_relu, ax_relu = plt.subplots(figsize=(5, 3))
+    ax_relu.plot(x_relu, y_relu, color='purple', linewidth=2)
+    ax_relu.axvline(0, color='gray', linestyle='--', linewidth=0.7)
+    ax_relu.axhline(0, color='gray', linestyle='--', linewidth=0.7)
+    ax_relu.set_title("ReLU 激活函數：負值歸零")
+    ax_relu.set_xlabel("輸入值 (加權總和)")
+    ax_relu.set_ylabel("輸出值")
+    st.pyplot(fig_relu)
+    st.caption("只有當輸入值大於零時，訊號才會被傳遞。否則，該訊號會被『關閉』。")
+    st.success("✅ **物理結論：** 隱藏層是模式的過濾與激活中心，只讓重要的特徵訊號傳遞。")
 
-st.info("💡 **教學點**：ResNet-101 其實就是重複了這個過程 101 次，讓 AI 能從微小的線條一直理解到複雜的物件語意。")
+
+st.markdown("---")
+
+# --- 3. 輸出層 (Output Layer) ---
+st.header("3. 📍 輸出層：最終的『決策投票』")
+st.subheader("物理含意：將得分轉化為機率")
+st.write("這是 ANN 做出最終判斷的地方。它會綜合所有隱藏層傳來的線索，然後告訴你機率最高的答案。")
+
+# 模擬 Softmax 機率分佈
+labels_output = ["類別 A", "類別 B", "類別 C"]
+scores_output = np.array([st.slider(f"類別 {chr(65+i)} 的分數 (原始輸出)", -5.0, 5.0, float(i)) for i in range(3)])
+
+exp_scores = np.exp(scores_output - np.max(scores_output)) # 避免溢出
+probabilities = exp_scores / np.sum(exp_scores)
+
+fig_output, ax_output = plt.subplots(figsize=(6, 3))
+ax_output.bar(labels_output, probabilities, color=['#FFC107', '#2196F3', '#4CAF50'])
+ax_output.set_ylim(0, 1)
+ax_output.set_ylabel("機率 (%)")
+ax_output.set_title("Softmax 輸出：機率分佈")
+for i, prob in enumerate(probabilities):
+    ax_output.text(i, prob + 0.05, f"{prob:.2%}", ha='center', color='black')
+st.pyplot(fig_output)
+st.caption("經過 Softmax 處理後，所有分數都會轉化為機率，總和為 100%。")
+st.success("✅ **物理結論：** 輸出層是決策的終點，將內部得分轉換為外部可理解的機率預測。")
+
+st.markdown("---")
+st.header("💡 總結：ANN 的局限與 CNN 的進化")
+st.write("""
+- **ANN 的局限：** 由於『攤平』資料，ANN 失去了圖片的**空間感**，導致在處理圖像時效率不高。
+- **CNN 的進化：** 透過引入**卷積層**，CNN 讓神經網路重新獲得了『視覺』。卷積層在 ANN 前面進行『特徵掃描』，讓隱藏層處理的不再是混亂的數字，而是有意義的『局部特徵』。
+""")
+st.write("這就是為什麼像 ResNet 這樣強大的影像 AI，都是 CNN 而不是純粹的 ANN。")
